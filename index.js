@@ -20,7 +20,7 @@ app.use(express.urlencoded({ extended: true }))
 
 
 
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect("mongodb+srv://karthikkolamur:Ka45h8k@udemyyy.l1ady.mongodb.net/shop?retryWrites=true&w=majority&appName=Udemyyy")
     .then(() => {
         console.log("MongoDB Connected Succesfully!");
     })
@@ -106,5 +106,5 @@ app.post('/logout', (req, res) => {
 })
 
 app.listen(PORT, () => {
-    console.log(`Serer started and Running @ ${PORT}`);
+    console.log(`Server started and Running @ ${PORT}`);
 });
