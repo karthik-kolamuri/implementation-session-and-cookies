@@ -5,7 +5,7 @@ const ejs = require('ejs')
 const session = require('express-session')//session
 const MongoDBStore = require('connect-mongodb-session')(session);//actually we are passing a session as afunction to the MongoDBStore...
 const User = require('./models/User')
-// var bcrypt = require('bcryptjs');
+var bcrypt = require('bcryptjs');
 
 
 const app = express();
@@ -39,9 +39,19 @@ mongoose.connect("mongodb+srv://karthikkolamur:Ka45h8k@udemyyy.l1ady.mongodb.net
 app.use(session({
     secret:"This is Karthik..",
     resave:false,
-    saveUninitialized:true,
+    saveUninitialized:false,
     store:store
 }))
+
+
+const checkAuthentication=(req,res,next)=>{
+    if (!req.session.isAuthenticated){
+        return res.redirect("/signup")
+    }
+    else{
+        next();
+    }
+}
 
 
 app.get('/signup', (req, res) => {
@@ -52,26 +62,57 @@ app.get('/login', (req, res) => {
     res.render('login')
 })
 
-app.get('/dashboard', (req, res) => {
+app.get('/dashboard',checkAuthentication, (req, res) => {
+    req.session.login=true;
     res.render('welcome')
 })
 
 app.post('/register',async(req,res,next)=>{
     const {username,email,password}=req.body;
     try{
+        const userr=await User.findOne({email});
+        if(userr){
+            res.redirect("/signup");
+        }
+        const hasedPassword=await bcrypt.hash(password,12);//converts the password into hashed 
         const user=new User({
             username,
             email,
-            password
+            password:hasedPassword
         })
         await user.save();
-        req.session.userDetails=user;
-        res.redirect('/login');
+        req.session.personalDetails=user;
+        res.redirect("/login");
     }
     catch(err){
+        console.log(err);
+        
         res.redirect('/signup')
     }
 })
+
+
+app.post("/user-login",async(req,res,next)=>{
+    const {email,password}=req.body;
+    const user=await User.findOne({email});
+    if(!user){
+       return res.redirect("/signup");
+    }
+    const passTrue=bcrypt.compare(password,user.password);//here it compares  the user entered password is same as the password in datbase 
+    if(passTrue){
+        req.session.isAuthenticated=true;
+        return res.redirect("/dashboard");
+    }
+    res.redirect("/signup")
+})
+
+app.use("/logout",(req,res)=>{
+    req.session.destroy((err)=>{
+        if(err) throw err;
+        res.redirect("/signup")
+    })
+})
+
 
 app.listen(3000, () => {
     console.log(`Server started and Running @ ${PORT}`);
